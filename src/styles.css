@@ -1,0 +1,222 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Amigos Hub — Design System
+ * Palette pulled directly from the cafe photos: warm whitewashed brick,
+ * mustard-yellow striped pillars, charcoal beams, sage hanging plants,
+ * sticky-note pink/coral wishes wall, and amber Edison-bulb glow.
+ * Personality: graffiti, scribble, college-hangout — NOT minimalist espresso bar.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-mustard: var(--mustard);
+  --color-coral: var(--coral);
+  --color-sage: var(--sage);
+  --color-charcoal: var(--charcoal);
+  --color-cream: var(--cream);
+  --color-ink: var(--ink);
+  --font-display: var(--font-display);
+  --font-script: var(--font-script);
+  --font-body: var(--font-body);
+}
+
+:root {
+  --radius: 0.5rem;
+
+  /* Brand palette — extracted from cafe photos */
+  --cream: oklch(0.965 0.012 85);          /* whitewashed brick */
+  --mustard: oklch(0.82 0.17 86);          /* yellow striped pillars */
+  --coral: oklch(0.68 0.21 32);            /* sticky-note + balloon red-orange */
+  --sage: oklch(0.62 0.11 145);            /* hanging pothos plants */
+  --charcoal: oklch(0.22 0.015 60);        /* ceiling beams + chalkboard */
+  --ink: oklch(0.18 0.01 60);              /* hand-drawn ink */
+  --amber-glow: oklch(0.78 0.14 70);       /* Edison bulb warm light */
+
+  --background: var(--cream);
+  --foreground: var(--ink);
+  --card: oklch(0.985 0.008 85);
+  --card-foreground: var(--ink);
+  --popover: var(--card);
+  --popover-foreground: var(--ink);
+  --primary: var(--mustard);
+  --primary-foreground: var(--ink);
+  --secondary: var(--charcoal);
+  --secondary-foreground: var(--cream);
+  --muted: oklch(0.93 0.012 80);
+  --muted-foreground: oklch(0.45 0.02 60);
+  --accent: var(--coral);
+  --accent-foreground: var(--cream);
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: var(--cream);
+  --border: oklch(0.88 0.015 75);
+  --input: oklch(0.92 0.012 80);
+  --ring: var(--mustard);
+
+  --font-display: "Bowlby One", "Archivo Black", Impact, sans-serif;
+  --font-script: "Caveat", "Kalam", cursive;
+  --font-body: "DM Sans", "Inter", system-ui, sans-serif;
+}
+
+.dark {
+  --background: var(--charcoal);
+  --foreground: var(--cream);
+  --card: oklch(0.28 0.015 60);
+  --card-foreground: var(--cream);
+  --popover: var(--card);
+  --popover-foreground: var(--cream);
+  --primary: var(--mustard);
+  --primary-foreground: var(--ink);
+  --secondary: var(--cream);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.3 0.012 60);
+  --muted-foreground: oklch(0.78 0.015 70);
+  --accent: var(--coral);
+  --accent-foreground: var(--cream);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: var(--mustard);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+    background-image:
+      radial-gradient(at 8% 12%, color-mix(in oklab, var(--mustard) 14%, transparent), transparent 45%),
+      radial-gradient(at 90% 6%, color-mix(in oklab, var(--coral) 10%, transparent), transparent 40%),
+      radial-gradient(at 50% 95%, color-mix(in oklab, var(--sage) 10%, transparent), transparent 50%);
+    background-attachment: fixed;
+  }
+  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
+  .font-script { font-family: var(--font-script); }
+  .font-display { font-family: var(--font-display); }
+}
+
+/* Hand-drawn marker underline */
+.marker-underline {
+  background-image: linear-gradient(transparent 65%, color-mix(in oklab, var(--mustard) 80%, transparent) 65%, color-mix(in oklab, var(--mustard) 80%, transparent) 92%, transparent 92%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  padding: 0 0.15em;
+}
+
+/* Diagonal mustard/charcoal stripe — the pillar motif */
+.stripe-pillar {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--mustard) 0 14px,
+    var(--charcoal) 14px 28px
+  );
+}
+
+/* Sticky-note wall paper */
+.sticky-note {
+  background: color-mix(in oklab, var(--mustard) 60%, white);
+  box-shadow: 2px 3px 0 rgba(0,0,0,0.08);
+  transform: rotate(var(--rot, -2deg));
+  transition: transform .25s ease;
+}
+.sticky-note:hover { transform: rotate(0deg) scale(1.04); }
+
+/* Paper grain */
+.grain::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.12 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  opacity: .35;
+  mix-blend-mode: multiply;
+}
+
+/* Tape corner */
+.tape::before, .tape::after {
+  content: "";
+  position: absolute;
+  width: 60px; height: 18px;
+  background: color-mix(in oklab, var(--mustard) 55%, white);
+  opacity: .85;
+  top: -8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+}
+.tape::before { left: -10px; transform: rotate(-18deg); }
+.tape::after  { right: -10px; transform: rotate(14deg); }
+
+/* Marquee */
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee-track { animation: marquee 28s linear infinite; }
+
+@keyframes bulb-glow {
+  0%,100% { filter: drop-shadow(0 0 6px color-mix(in oklab, var(--amber-glow) 60%, transparent)); opacity: .92; }
+  50%     { filter: drop-shadow(0 0 14px color-mix(in oklab, var(--amber-glow) 90%, transparent)); opacity: 1; }
+}
+.bulb { animation: bulb-glow 3.4s ease-in-out infinite; }
+
+@keyframes wiggle {
+  0%,100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+.wiggle { animation: wiggle 4s ease-in-out infinite; transform-origin: top center; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fade-up .8s ease-out both; }
+
+.veg-dot, .nonveg-dot {
+  display: inline-block; width: 12px; height: 12px;
+  border: 1.5px solid currentColor; position: relative;
+}
+.veg-dot { color: #3a7d2c; }
+.veg-dot::after { content:""; position:absolute; inset:2px; background:#3a7d2c; border-radius:999px; }
+.nonveg-dot { color: #b3261e; }
+.nonveg-dot::after { content:""; position:absolute; inset:2px; background:#b3261e; border-radius:999px; }
