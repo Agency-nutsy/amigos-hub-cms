@@ -37,7 +37,7 @@ function GalleryPage() {
     <div className="mx-auto max-w-7xl px-5 sm:px-8 py-12">
       <div className="max-w-3xl">
         <p className="font-script text-coral text-3xl">come look around</p>
-        <h1 className="mt-2 text-6xl lg:text-7xl leading-[0.95]">The <span className="marker-underline">gallery.</span></h1>
+        <h1 className="mt-2 text-5xl md:text-6xl lg:text-7xl leading-[0.95]">The <span className="marker-underline">gallery.</span></h1>
         <p className="mt-5 text-charcoal/70 text-lg">All photos taken inside the cafe. No stock images, no styled shoots — just our regular Tuesday.</p>
       </div>
 

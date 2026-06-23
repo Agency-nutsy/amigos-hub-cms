@@ -85,14 +85,14 @@ function Home() {
             </div>
 
             {/* Collage */}
-            <div className="lg:col-span-5 relative h-[440px] lg:h-[560px]">
-              <div className="absolute top-0 right-4 w-56 h-72 rounded-md overflow-hidden shadow-xl rotate-[4deg] hover:rotate-0 transition-transform duration-500 tape">
+            <div className="lg:col-span-5 relative h-[380px] sm:h-[440px] lg:h-[560px]">
+              <div className="absolute top-0 right-0 sm:right-4 w-40 sm:w-56 h-56 sm:h-72 rounded-md overflow-hidden shadow-xl rotate-[4deg] hover:rotate-0 transition-transform duration-500 tape">
                 <img src="/photos/3.webp" alt="Cafe interior with yellow striped counter" className="h-full w-full object-cover" />
               </div>
-              <div className="absolute top-32 left-0 w-60 h-44 rounded-md overflow-hidden shadow-xl -rotate-[5deg] hover:rotate-0 transition-transform duration-500 tape">
+              <div className="absolute top-28 sm:top-32 left-0 w-48 sm:w-60 h-36 sm:h-44 rounded-md overflow-hidden shadow-xl -rotate-[5deg] hover:rotate-0 transition-transform duration-500 tape">
                 <img src="/photos/2.webp" alt="Brightly lit seating area decorated with red balloons" className="h-full w-full object-cover" />
               </div>
-              <div className="absolute bottom-0 right-0 w-72 h-56 rounded-md overflow-hidden shadow-2xl rotate-[2deg] hover:rotate-0 transition-transform duration-500 tape">
+              <div className="absolute bottom-0 right-0 w-52 sm:w-72 h-44 sm:h-56 rounded-md overflow-hidden shadow-2xl rotate-[2deg] hover:rotate-0 transition-transform duration-500 tape">
                 <img src="/photos/1.webp" alt="Dimly lit cafe full of people dining" className="h-full w-full object-cover" />
               </div>
               <div className="absolute bottom-16 left-8 hidden lg:block font-script text-sage text-2xl rotate-[-8deg]">
@@ -133,7 +133,7 @@ function Home() {
         </div>
         <div className="md:col-span-7">
           <p className="font-script text-coral text-3xl">our whole thing →</p>
-          <h2 className="mt-2 text-5xl lg:text-6xl leading-[0.95]">
+          <h2 className="mt-2 text-4xl md:text-5xl lg:text-6xl leading-[0.95]">
             Eleven years of <span className="marker-underline">fairy lights</span> and
             <span className="text-coral"> first-year crushes</span>.
           </h2>
@@ -155,7 +155,7 @@ function Home() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div>
               <p className="font-script text-mustard text-3xl">the regulars know</p>
-              <h2 className="text-5xl lg:text-6xl mt-2">What everybody orders.</h2>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl mt-2">What everybody orders.</h2>
             </div>
             <Link to="/menu" className="inline-flex items-center gap-2 rounded-full bg-mustard text-ink px-6 py-3 font-medium hover:bg-coral hover:text-cream transition-colors w-fit">
               See the full menu →
@@ -193,7 +193,7 @@ function Home() {
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <div className="max-w-2xl">
             <p className="font-script text-sage text-3xl">straight from the wishes wall</p>
-            <h2 className="mt-2 text-5xl lg:text-6xl">
+            <h2 className="mt-2 text-4xl md:text-5xl lg:text-6xl">
               Things people <span className="marker-underline">actually</span> said.
             </h2>
           </div>
@@ -222,7 +222,7 @@ function Home() {
       {/* GALLERY teaser */}
       <section className="mx-auto max-w-7xl px-5 sm:px-8 py-20">
         <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
-          <h2 className="text-5xl lg:text-6xl">A peek inside.</h2>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl">A peek inside.</h2>
           <Link to="/gallery" className="font-medium border-b-2 border-charcoal pb-1 hover:text-coral hover:border-coral">Full gallery →</Link>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
@@ -279,7 +279,7 @@ function Home() {
         <div className="mx-auto max-w-7xl px-5 sm:px-8 py-20 grid md:grid-cols-2 gap-10 items-stretch">
           <div>
             <p className="font-script text-coral text-3xl">come hang</p>
-            <h2 className="mt-2 text-5xl lg:text-6xl">Find the door with the fairy lights.</h2>
+            <h2 className="mt-2 text-4xl md:text-5xl lg:text-6xl">Find the door with the fairy lights.</h2>
             <ul className="mt-8 space-y-4 text-charcoal/80">
               <li><strong className="text-ink block">Address</strong>96, 1st, Satya Niketan, opposite Venkateshwar college, Moti Bagh II, Satya Niketan, South Moti Bagh, New Delhi, Delhi, 110021</li>
               <li><strong className="text-ink block">Hours</strong>10:00 am – 10:30 pm every day</li>

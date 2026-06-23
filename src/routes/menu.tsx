@@ -281,7 +281,7 @@ function MenuPage() {
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto">
         <p className="font-script text-coral text-3xl">the menu board</p>
-        <h1 className="mt-2 text-6xl lg:text-7xl leading-[0.95]">
+        <h1 className="mt-2 text-5xl md:text-6xl lg:text-7xl leading-[0.95]">
           Everything <span className="marker-underline">we make.</span>
         </h1>
         <p className="mt-5 text-charcoal/70 text-lg">
@@ -316,7 +316,7 @@ function MenuPage() {
         {menu.map((cat) => (
           <section key={cat.id} id={cat.id} className="scroll-mt-28">
             <div className="flex items-center gap-4 mb-8">
-              <h2 className="text-4xl lg:text-5xl">{cat.label}</h2>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl">{cat.label}</h2>
               <div className="flex-1 h-1 stripe-pillar rounded-full" />
             </div>
             <div className="grid md:grid-cols-2 gap-x-10 gap-y-6">

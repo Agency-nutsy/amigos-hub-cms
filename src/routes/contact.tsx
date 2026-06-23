@@ -20,7 +20,7 @@ function ContactPage() {
     <div className="mx-auto max-w-7xl px-5 sm:px-8 py-12">
       <div className="max-w-3xl">
         <p className="font-script text-coral text-3xl">say hi</p>
-        <h1 className="mt-2 text-6xl lg:text-7xl leading-[0.95]">
+        <h1 className="mt-2 text-5xl md:text-6xl lg:text-7xl leading-[0.95]">
           Drop in. Or <span className="marker-underline">drop us a line.</span>
         </h1>
       </div>

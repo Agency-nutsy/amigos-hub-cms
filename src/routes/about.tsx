@@ -30,7 +30,7 @@ function AboutPage() {
       <section className="mx-auto max-w-7xl px-5 sm:px-8 pt-16 pb-12 grid md:grid-cols-12 gap-10 items-center">
         <div className="md:col-span-7">
           <p className="font-script text-coral text-3xl">our whole deal</p>
-          <h1 className="mt-2 text-6xl lg:text-8xl leading-[0.9]">
+          <h1 className="mt-2 text-5xl md:text-6xl lg:text-8xl leading-[0.9]">
             A tiny cafe<br />
             with a <span className="text-coral">very big</span><br />
             <span className="marker-underline">crush</span> on DU.
@@ -50,14 +50,14 @@ function AboutPage() {
       {/* Timeline */}
       <section className="bg-charcoal text-cream py-24">
         <div className="mx-auto max-w-5xl px-5 sm:px-8">
-          <h2 className="text-5xl lg:text-6xl text-mustard">A short history.</h2>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl text-mustard">A short history.</h2>
           <div className="mt-14 relative">
             <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 stripe-pillar -translate-x-1/2" />
             <div className="space-y-12">
               {milestones.map((m, i) => (
                 <div key={m.year} className={`relative grid md:grid-cols-2 gap-6 items-start ${i % 2 ? "md:[&>*:first-child]:order-2" : ""}`}>
                   <div className={`pl-12 md:pl-0 ${i % 2 ? "md:text-left md:pl-12" : "md:text-right md:pr-12"}`}>
-                    <span className="font-display text-5xl text-mustard">{m.year}</span>
+                    <span className="font-display text-4xl md:text-5xl text-mustard">{m.year}</span>
                     <h3 className="text-2xl mt-2">{m.title}</h3>
                     <p className="text-cream/70 mt-2 text-sm leading-relaxed max-w-md md:inline-block">{m.body}</p>
                   </div>
@@ -79,7 +79,7 @@ function AboutPage() {
           { n: "∞", l: "Sticky notes on the wall" },
         ].map((s) => (
           <div key={s.l} className="rounded-md bg-cream border-2 border-charcoal/15 p-6 hover:border-coral transition-colors">
-            <div className="font-display text-5xl text-coral">{s.n}</div>
+            <div className="font-display text-4xl md:text-5xl text-coral">{s.n}</div>
             <div className="mt-2 text-sm uppercase tracking-widest text-charcoal/70">{s.l}</div>
           </div>
         ))}
@@ -89,7 +89,7 @@ function AboutPage() {
       <section className="bg-mustard text-ink py-16">
         <div className="mx-auto max-w-5xl px-5 sm:px-8 text-center">
           <p className="font-script text-2xl text-coral">said about us</p>
-          <h2 className="mt-2 text-4xl lg:text-5xl">"A budget date-night institution."</h2>
+          <h2 className="mt-2 text-3xl md:text-4xl lg:text-5xl">"A budget date-night institution."</h2>
           <p className="mt-4 text-ink/80">As featured in <strong>Delhi Times</strong> & <strong>So Delhi</strong>.</p>
         </div>
       </section>
