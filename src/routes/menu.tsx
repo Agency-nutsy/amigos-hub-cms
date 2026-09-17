@@ -1,239 +1,42 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { photos } from "@/lib/photos";
+import { getRestaurantDataFn } from "@/lib/cms-actions";
+import type { RestaurantData } from "@/lib/restaurant-data";
 
 export const Route = createFileRoute("/menu")({
-  head: () => ({
-    meta: [
-      { title: "Menu · Amigos Hub Satya Niketan" },
-      { name: "description", content: "Burgers, pizza, pasta, momos, shakes, mojitos, shawarma & coffee — the full Amigos Hub menu. Pocket-friendly comfort food from DU South Campus's favourite cafe since 2014." },
-      { property: "og:title", content: "Amigos Hub · Menu" },
-      { property: "og:description", content: "The full Amigos Hub menu — burgers, shakes, momos, mojitos & more." },
-      { property: "og:image", content: photos.drinkPink },
-    ],
-  }),
+  loader: async (): Promise<RestaurantData> => {
+    return await getRestaurantDataFn();
+  },
   component: MenuPage,
 });
 
-type Item = { name: string; desc?: string; price: string; veg?: boolean; star?: boolean };
-type Cat = { id: string; label: string; items: Item[] };
-
-const menu: Cat[] = [
-  {
-    id: "pasta",
-    label: "Pasta",
-    items: [
-      { name: "Penne Pasta", desc: "Alfredo / Arrabbiata / Mix Sauce", price: "₹190 / ₹220", veg: true },
-      { name: "Baked Cheese Pasta", desc: "Alfredo / Arrabbiata / Mix Sauce", price: "₹240 / ₹260", veg: true },
-      { name: "Shahi Paneer Pasta", desc: "Our Special", price: "₹200", veg: true, star: true },
-      { name: "Butter Chicken Pasta", desc: "Our Special", price: "₹220", veg: false, star: true },
-    ]
-  },
-  {
-    id: "pizza",
-    label: "Pizza",
-    items: [
-      { name: "Classic Margherita", desc: "Tomato and mozzarella cheese margherita pizza", price: "₹180", veg: true },
-      { name: "Sweetcorn Pizza", desc: "A quick sweetcorn + extra corn", price: "₹190", veg: true },
-      { name: "Cheesy Mushroom", desc: "Fresh mushrooms, fresh flavors, fresh pizza", price: "₹190", veg: true },
-      { name: "Farm Fresh", desc: "Sweetcorn, capsicum, onion, tomato", price: "₹220", veg: true },
-      { name: "Signature Veggie", desc: "Mushroom, jalapeno, onion tomato", price: "₹230", veg: true },
-      { name: "Veg. Exotic", desc: "Tandoori paneer onion capsicum tomato olive jalapeno (Our special)", price: "₹260", veg: true, star: true },
-      { name: "Shahi Paneer", desc: "Royal flavors, Shahi paneer bites in a pizza (must have)", price: "₹230", veg: true, star: true },
-      { name: "Tandoori Chicken Tikka", desc: "Tandoori tender chicken chunks in our signature Tandoori sauce", price: "₹210", veg: false },
-      { name: "Keema Cheese", desc: "Fresh to goodness on a cheesy crust (must have)", price: "₹230", veg: false, star: true },
-      { name: "Spicy Chicken", desc: "Spicy chicken, mushroom jalapeno tomato onion", price: "₹240", veg: false },
-    ]
-  },
-  {
-    id: "burger",
-    label: "Burger",
-    items: [
-      { name: "Cheese Blast Burger", desc: "Patty, molten cheese, the works.", price: "₹220", veg: false, star: true },
-      { name: "Double Decker Burger", desc: "Two patties, one very brave bun.", price: "₹260", veg: false, star: true },
-      { name: "Kadhai Paneer Burger", desc: "Our no-patty desi-style burger.", price: "₹190", veg: true, star: true },
-      { name: "Classic Veggie Burger", desc: "Crispy veg patty, lettuce, mayo.", price: "₹140", veg: true },
-    ]
-  },
-  {
-    id: "momo-mia",
-    label: "Momo-Mia",
-    items: [
-      { name: "Crispy Fried", desc: "", price: "₹110 / ₹130", veg: true },
-      { name: "Hot Garlic", desc: "", price: "₹140 / ₹150", veg: true },
-      { name: "Chilli Cheese", desc: "", price: "₹150 / ₹170", veg: true },
-      { name: "Makhani Gravy", desc: "", price: "₹170 / ₹180", veg: true },
-      { name: "Pizza Momos", desc: "", price: "₹170 / ₹180", veg: true },
-    ]
-  },
-  {
-    id: "shawarmas",
-    label: "Shawarmas",
-    items: [
-      { name: "Paneer Shawarma", desc: "", price: "₹100", veg: true },
-      { name: "Chicken Shawarma", desc: "", price: "₹100", veg: false },
-    ]
-  },
-  {
-    id: "sandwich",
-    label: "Sandwich",
-    items: [
-      { name: "Veggie Supreme", desc: "", price: "₹100", veg: true },
-      { name: "Cheesy Mushroom", desc: "", price: "₹120", veg: true },
-      { name: "Cheesy Corn", desc: "", price: "₹120", veg: true },
-      { name: "Loaded Paneer", desc: "", price: "₹140", veg: true },
-      { name: "Bombay Masala", desc: "special", price: "₹150", veg: true, star: true },
-      { name: "Veg. Club Sandwich", desc: "", price: "₹130", veg: true },
-      { name: "Chicken Keema", desc: "", price: "₹140", veg: false },
-      { name: "Chicken N Cheese", desc: "", price: "₹150", veg: false },
-      { name: "Loaded Chicken", desc: "", price: "₹150", veg: false },
-      { name: "Chicken Club Sandwich", desc: "", price: "₹160", veg: false },
-    ]
-  },
-  {
-    id: "wraps",
-    label: "Wraps",
-    items: [
-      { name: "Veggie Delight Wrap", desc: "", price: "₹110", veg: true },
-      { name: "Spicy Paneer Wrap", desc: "", price: "₹120", veg: true },
-    ]
-  },
-  {
-    id: "pitchers",
-    label: "Pitchers",
-    items: [
-      { name: "Coke Pitcher", desc: "", price: "₹200", veg: true },
-      { name: "Mojito Pitcher", desc: "", price: "₹500", veg: true },
-    ]
-  },
-  {
-    id: "beverage",
-    label: "Beverage",
-    items: [
-      { name: "Soft Drinks", desc: "", price: "₹60", veg: true },
-      { name: "Red Bull", desc: "", price: "₹150", veg: true },
-      { name: "Water Bottle", desc: "", price: "MRP", veg: true },
-    ]
-  },
-  {
-    id: "regular-shakes",
-    label: "Regular Shakes",
-    items: [
-      { name: "Choco Dream", desc: "", price: "₹100", veg: true },
-      { name: "Mangolicious", desc: "", price: "₹120", veg: true },
-      { name: "Strawberry Burst", desc: "", price: "₹120", veg: true },
-      { name: "Butterscotch Bliss", desc: "", price: "₹120", veg: true },
-      { name: "Blueberry Blast", desc: "", price: "₹130", veg: true },
-      { name: "Oreo Cream", desc: "", price: "₹130", veg: true },
-      { name: "Kitkat Krunch", desc: "", price: "₹130", veg: true },
-    ]
-  },
-  {
-    id: "premium-shakes",
-    label: "Premium Shakes",
-    items: [
-      { name: "Ferrero Fantasy", desc: "", price: "₹180", veg: true, star: true },
-    ]
-  },
-  {
-    id: "hot-sips",
-    label: "Hot Sips",
-    items: [
-      { name: "Masala Chai", desc: "", price: "₹50", veg: true },
-      { name: "Ginger Tea", desc: "", price: "₹60", veg: true },
-      { name: "Green Tea", desc: "", price: "₹60", veg: true },
-      { name: "Hot Coffee", desc: "", price: "₹80", veg: true },
-      { name: "Black Coffee", desc: "", price: "₹80", veg: true },
-      { name: "Hot Chocolate", desc: "", price: "₹90", veg: true },
-      { name: "Chocolate Coffee", desc: "", price: "₹100", veg: true },
-      { name: "Hazelnut Brew", desc: "", price: "₹110", veg: true },
-    ]
-  },
-  {
-    id: "coolers",
-    label: "Coolers",
-    items: [
-      { name: "Fresh Lime Soda", desc: "", price: "₹100", veg: true },
-      { name: "Masala Banta", desc: "", price: "₹110", veg: true },
-      { name: "Iced Tea", desc: "Peach/Lemon", price: "₹120", veg: true },
-      { name: "Strawberry Lemonade", desc: "", price: "₹130", veg: true },
-      { name: "Iced Black Coffee", desc: "", price: "₹100", veg: true },
-    ]
-  },
-  {
-    id: "mojito",
-    label: "Mojito",
-    items: [
-      { name: "Virgin Mojito", desc: "", price: "₹120", veg: true },
-      { name: "Mango Mojito", desc: "", price: "₹130", veg: true },
-      { name: "Masala Mojito", desc: "", price: "₹130", veg: true },
-      { name: "Strawberry Mojito", desc: "", price: "₹130", veg: true },
-      { name: "Watermelon Mojito", desc: "", price: "₹140", veg: true },
-      { name: "Blueberry Mojito", desc: "", price: "₹140", veg: true },
-      { name: "Green Apple Mojito", desc: "", price: "₹150", veg: true },
-      { name: "Cranberry Mojito", desc: "", price: "₹150", veg: true },
-    ]
-  },
-  {
-    id: "coffee-holic",
-    label: "Coffee-Holic",
-    items: [
-      { name: "Classic Cold Coffee", desc: "", price: "₹120", veg: true },
-      { name: "Caramel Cold Coffee", desc: "", price: "₹130", veg: true },
-    ]
-  },
-  {
-    id: "munchies",
-    label: "Munchies",
-    items: [
-      { name: "Veggie Fingers", desc: "", price: "₹110", veg: true },
-      { name: "Cheesy Jalapeno Shots", desc: "", price: "₹130", veg: true },
-      { name: "Fried Soya Popcorn", desc: "", price: "₹130", veg: true },
-      { name: "Hot Garlic Soya Popcorn", desc: "", price: "₹140", veg: true },
-      { name: "BBQ Soya Pops", desc: "", price: "₹140", veg: true },
-      { name: "Cheese Mushroom Balls", desc: "", price: "₹150", veg: true },
-      { name: "Crispy Sweetcorn", desc: "", price: "₹150", veg: true },
-      { name: "Onion Rings", desc: "10 pcs", price: "₹130", veg: true },
-      { name: "Spring Rolls", desc: "12 pcs", price: "₹130", veg: true },
-      { name: "Chicken Popcorn", desc: "", price: "₹180", veg: false },
-      { name: "Chicken Hot Garlic", desc: "", price: "₹190", veg: false },
-      { name: "BBQ Chicken Bites", desc: "", price: "₹190", veg: false },
-      { name: "Cheesy Chicken Feast", desc: "special", price: "₹190", veg: false, star: true },
-      { name: "Fried Chicken Wings", desc: "must have", price: "₹200", veg: false, star: true },
-      { name: "BBQ Chicken Wings", desc: "", price: "₹220", veg: false },
-    ]
-  },
-  {
-    id: "nachos",
-    label: "Nachos",
-    items: [
-      { name: "Nachos With Salsa Dip", desc: "", price: "₹90", veg: true },
-      { name: "Nachos With Sweetcorn", desc: "", price: "₹120", veg: true },
-      { name: "Cheesy Nachos", desc: "", price: "₹140 / ₹160", veg: true },
-    ]
-  }
-];
-
 function MenuPage() {
-  const [active, setActive] = useState<string>(menu[0].id);
+  const data = Route.useLoaderData() as RestaurantData;
+  const { menu } = data;
+
+  const [active, setActive] = useState<string>(menu[0]?.id ?? "");
   const isClicking = useRef(false);
   const pillContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menu[0]) return;
+    setActive(menu[0].id);
+  }, [menu]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (isClicking.current) return;
-        
+
         let newActive = active;
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             newActive = entry.target.id;
           }
         });
-        
+
         if (newActive !== active) {
           setActive(newActive);
-          // Scroll the pill container to keep active pill in view
           const activePill = document.getElementById(`pill-${newActive}`);
           if (activePill && pillContainerRef.current) {
             const container = pillContainerRef.current;
@@ -251,13 +54,12 @@ function MenuPage() {
     });
 
     return () => observer.disconnect();
-  }, [active]);
+  }, [active, menu]);
 
   const handleNavClick = (id: string) => {
     isClicking.current = true;
     setActive(id);
-    
-    // Scroll the pill container to keep active pill in view
+
     const activePill = document.getElementById(`pill-${id}`);
     if (activePill && pillContainerRef.current) {
       const container = pillContainerRef.current;
@@ -270,7 +72,7 @@ function MenuPage() {
       const y = el.getBoundingClientRect().top + window.scrollY - 100;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
-    
+
     setTimeout(() => {
       isClicking.current = false;
     }, 1000);
@@ -291,9 +93,9 @@ function MenuPage() {
       </div>
 
       {/* Category pills */}
-      <div 
+      <div
         ref={pillContainerRef}
-        className="mt-10 flex gap-2 overflow-x-auto no-scrollbar sticky top-16 z-20 py-3 bg-cream/85 backdrop-blur-md -mx-5 px-5 sm:-mx-8 sm:px-8 border-y border-charcoal/10"
+        className="mt-10 flex gap-2 overflow-x-auto no-scrollbar sticky top-20 sm:top-24 z-20 py-3 bg-cream/85 backdrop-blur-md -mx-5 px-5 sm:-mx-8 sm:px-8 border-y border-charcoal/10"
       >
         {menu.map((c) => (
           <button

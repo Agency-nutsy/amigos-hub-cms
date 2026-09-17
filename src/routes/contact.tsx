@@ -1,21 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { photos } from "@/lib/photos";
+import { getRestaurantDataFn } from "@/lib/cms-actions";
+import { type RestaurantData, getGoogleMapsEmbedUrl } from "@/lib/restaurant-data";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "Contact & Reservations · Amigos Hub Satya Niketan" },
-      { name: "description", content: "Find Amigos Hub in Satya Niketan, opposite Sri Venkateshwara College. Call us, book a table, or plan a budget birthday." },
-      { property: "og:title", content: "Visit Amigos Hub" },
-      { property: "og:image", content: photos.ambience2 },
-    ],
-  }),
+  loader: async (): Promise<RestaurantData> => {
+    return await getRestaurantDataFn();
+  },
   component: ContactPage,
 });
 
 function ContactPage() {
+  const data = Route.useLoaderData() as RestaurantData;
+  const { address, hours, phone, whatsappNumber, socialLinks, mapsEmbedQuery, name } = data;
   const [sent, setSent] = useState(false);
+
   return (
     <div className="mx-auto max-w-7xl px-5 sm:px-8 py-12">
       <div className="max-w-3xl">
@@ -30,8 +29,8 @@ function ContactPage() {
         <div className="lg:col-span-7 space-y-6">
           <div className="rounded-md overflow-hidden border-4 border-charcoal shadow-2xl">
             <iframe
-              title="Amigos Hub on Google Maps"
-              src="https://www.google.com/maps?q=Amigos+Hub+Satya+Niketan&output=embed"
+              title={`${name} on Google Maps`}
+              src={getGoogleMapsEmbedUrl(mapsEmbedQuery)}
               className="w-full h-[420px]"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
@@ -40,21 +39,23 @@ function ContactPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="rounded-md bg-cream border-2 border-charcoal/15 p-5">
               <p className="text-xs uppercase tracking-widest text-coral font-bold">Address</p>
-              <p className="mt-2 text-charcoal">96, 1st, Satya Niketan, opposite Venkateshwar college, Moti Bagh II, Satya Niketan, South Moti Bagh, New Delhi, Delhi, 110021</p>
+              <p className="mt-2 text-charcoal">{address}</p>
             </div>
             <div className="rounded-md bg-cream border-2 border-charcoal/15 p-5">
               <p className="text-xs uppercase tracking-widest text-coral font-bold">Hours</p>
-              <p className="mt-2 text-charcoal">10:00 am – 10:30 pm every day</p>
+              <p className="mt-2 text-charcoal">{hours}</p>
             </div>
             <div className="rounded-md bg-cream border-2 border-charcoal/15 p-5">
               <p className="text-xs uppercase tracking-widest text-coral font-bold">Phone</p>
-              <a href="tel:+919999739766" className="mt-2 block font-display text-2xl hover:text-coral">+91 99997 39766</a>
+              <a href={`tel:${phone.replace(/[^+0-9]/g, "")}`} className="mt-2 block font-display text-2xl hover:text-coral">
+                {phone}
+              </a>
             </div>
             <div className="rounded-md bg-cream border-2 border-charcoal/15 p-5">
               <p className="text-xs uppercase tracking-widest text-coral font-bold">Follow</p>
               <div className="mt-2 flex flex-wrap gap-3">
-                <a href="https://www.instagram.com/amigoshub.india/" target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-coral">Instagram</a>
-                <a href="https://maps.app.goo.gl/FF8mphjaHEt2PKtC7" target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-coral">Google Maps</a>
+                <a href={socialLinks.instagram} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-coral">Instagram</a>
+                <a href={socialLinks.maps} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-coral">Google Maps</a>
               </div>
             </div>
           </div>
@@ -74,25 +75,25 @@ function ContactPage() {
             ) : (
               <form
                 className="mt-6 grid gap-4"
-                onSubmit={(e) => { 
-                  e.preventDefault(); 
+                onSubmit={(e) => {
+                  e.preventDefault();
                   const formData = new FormData(e.currentTarget);
-                  const name = formData.get('name');
-                  const phone = formData.get('phone');
+                  const guestName = formData.get('name');
+                  const guestPhone = formData.get('phone');
                   const when = formData.get('when');
                   const guests = formData.get('guests');
                   const message = formData.get('message');
-                  
+
                   const dateStr = new Date(when as string).toLocaleString('en-IN', {
                     weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
                   });
 
-                  const text = `Hi Amigos Hub! 👋\n\nI would like to request a table reservation.\n\n*Name:* ${name}\n*Phone:* ${phone}\n*Date & Time:* ${dateStr}\n*Guests:* ${guests}\n*Occasion/Message:* ${message ? message : 'N/A'}\n\nPlease confirm if this is available. Thanks!`;
-                  
+                  const text = `Hi ${name}! 👋\n\nI would like to request a table reservation.\n\n*Name:* ${guestName}\n*Phone:* ${guestPhone}\n*Date & Time:* ${dateStr}\n*Guests:* ${guests}\n*Occasion/Message:* ${message ? message : 'N/A'}\n\nPlease confirm if this is available. Thanks!`;
+
                   const encodedText = encodeURIComponent(text);
-                  window.open(`https://wa.me/919999739766?text=${encodedText}`, '_blank');
-                  
-                  setSent(true); 
+                  window.open(`https://wa.me/${whatsappNumber}?text=${encodedText}`, '_blank');
+
+                  setSent(true);
                 }}
               >
                 {[

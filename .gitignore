@@ -20,6 +20,12 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# CMS runtime data (back this up separately — do NOT commit)
+data/restaurant.json
+
+# Uploaded photos via CMS (back up public/uploads/ separately)
+public/uploads/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

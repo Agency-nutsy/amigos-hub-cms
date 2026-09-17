@@ -1,0 +1,987 @@
+/**
+ * /dashboard-x7k2
+ *
+ * Password-gated CMS admin form.
+ *
+ * SECURITY MODEL:
+ *  - If restaurantData.isLocked === true → loader throws notFound() (404 for everyone)
+ *  - If not authed → renders LoginForm
+ *  - If authed → renders AdminForm with all editable fields
+ *
+ * To unlock a locked site: edit data/restaurant.json directly, set "isLocked": false.
+ * See CMS_README.md for full operator instructions.
+ */
+
+import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
+import { useState, useRef, useCallback } from "react";
+import type { ChangeEvent } from "react";
+
+import {
+  getRestaurantDataFn,
+  checkCmsAuthFn,
+  cmsLoginFn,
+  cmsLogoutFn,
+  saveRestaurantDataFn,
+  uploadPhotoFn,
+} from "@/lib/cms-actions";
+import type {
+  RestaurantData,
+  MenuCategory,
+  MenuItem,
+  SignatureDish,
+  Review,
+  GalleryPhoto,
+  Milestone,
+  Stat,
+} from "@/lib/restaurant-data";
+
+// ── shadcn/ui components ─────────────────────────────────────────────────────
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+
+// ── Route ─────────────────────────────────────────────────────────────────────
+
+type LoaderData = { restaurantData: RestaurantData; isAuthed: boolean };
+
+export const Route = createFileRoute("/dashboard-x7k2")({
+  loader: async (): Promise<LoaderData> => {
+    const restaurantData = await getRestaurantDataFn();
+    if (restaurantData.isLocked) {
+      throw notFound();
+    }
+    const isAuthed = await checkCmsAuthFn();
+    return { restaurantData, isAuthed };
+  },
+  component: DashboardPage,
+});
+
+// ── Page shell ────────────────────────────────────────────────────────────────
+
+function DashboardPage() {
+  const { restaurantData, isAuthed } = Route.useLoaderData();
+
+  if (!isAuthed) {
+    return <LoginForm />;
+  }
+
+  return <AdminForm initialData={restaurantData} />;
+}
+
+// ── Login form ────────────────────────────────────────────────────────────────
+
+function LoginForm() {
+  const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await cmsLoginFn({ data: { password } });
+      if (result.success) {
+        navigate({ to: "/dashboard-x7k2" });
+        window.location.reload(); // force loader re-run after cookie is set
+      } else {
+        setError(result.error ?? "Login failed.");
+      }
+    } catch (err) {
+      setError("Server error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="inline-block text-4xl mb-3">🔐</div>
+          <h1 className="text-2xl font-bold text-white">CMS Access</h1>
+          <p className="text-slate-400 text-sm mt-1">Enter the admin password to continue</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="cms-password" className="text-slate-300">Password</Label>
+            <Input
+              id="cms-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Admin password"
+              required
+              autoFocus
+              className="mt-1 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500"
+            />
+          </div>
+          {error && (
+            <p className="text-red-400 text-sm">{error}</p>
+          )}
+          <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500">
+            {loading ? "Checking..." : "Unlock CMS →"}
+          </Button>
+        </form>
+        <p className="text-center text-xs text-slate-600 mt-6">
+          Set CMS_ADMIN_PASSWORD env var to configure the password.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+type Setter<T> = React.Dispatch<React.SetStateAction<T>>;
+
+function FieldRow({ label, children, help }: { label: string; children: React.ReactNode; help?: string }) {
+  return (
+    <div className="grid gap-1.5">
+      <Label className="text-slate-200 font-medium">{label}</Label>
+      {children}
+      {help && <p className="text-xs text-slate-500">{help}</p>}
+    </div>
+  );
+}
+
+function SectionTitle({ children, autoGenerated }: { children: React.ReactNode; autoGenerated?: boolean }) {
+  return (
+    <div className="flex items-center gap-3 border-b border-slate-700 pb-2 mb-4">
+      <h3 className="text-lg font-semibold text-white">{children}</h3>
+      {autoGenerated && <Badge variant="outline" className="text-amber-400 border-amber-400/50">Auto-generated</Badge>}
+    </div>
+  );
+}
+
+function AddBtn({ onClick, label = "Add item" }: { onClick: () => void; label?: string }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={onClick}
+      className="border-dashed border-slate-600 text-slate-400 hover:text-white hover:border-slate-400"
+    >
+      + {label}
+    </Button>
+  );
+}
+
+function RemoveBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={onClick}
+      className="text-red-400 hover:text-red-300 hover:bg-red-950 px-2 shrink-0"
+    >
+      ✕
+    </Button>
+  );
+}
+
+/** Upload a file and call onUrl with the resulting URL */
+async function uploadFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const base64 = e.target?.result as string;
+        const result = await uploadPhotoFn({ data: { base64, filename: file.name } });
+        resolve(result.url);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error("FileReader error"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function PhotoUpload({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (url: string) => void;
+  label?: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setErr(null);
+    try {
+      const url = await uploadFile(file);
+      onChange(url);
+    } catch {
+      setErr("Upload failed. Try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {label && <Label className="text-slate-200">{label}</Label>}
+      <div className="flex gap-2 items-center">
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="/photos/example.jpg or /uploads/uuid.webp"
+          className="bg-slate-900 border-slate-700 text-white flex-1 text-sm"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="shrink-0 border-slate-600 text-slate-300 hover:text-white"
+        >
+          {uploading ? "Uploading…" : "Upload"}
+        </Button>
+        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+      </div>
+      {err && <p className="text-xs text-red-400">{err}</p>}
+      {value && (
+        <img src={value} alt="preview" className="h-16 w-auto rounded border border-slate-700 object-cover" />
+      )}
+    </div>
+  );
+}
+
+// ── Admin form ────────────────────────────────────────────────────────────────
+
+function AdminForm({ initialData }: { initialData: RestaurantData }) {
+  const navigate = useNavigate();
+  const [form, setForm] = useState<RestaurantData>(initialData);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Generic scalar updater
+  const set = useCallback(
+    <K extends keyof RestaurantData>(key: K, value: RestaurantData[K]) => {
+      setForm((f) => ({ ...f, [key]: value }));
+    },
+    []
+  );
+
+  // Nested object updater (e.g. socialLinks, seoMeta)
+  const setNested = useCallback(
+    (path: string[], value: unknown) => {
+      setForm((f) => {
+        const copy: Record<string, unknown> = { ...(f as unknown as Record<string, unknown>) };
+        let cur = copy;
+        for (let i = 0; i < path.length - 1; i++) {
+          cur[path[i]] = { ...(cur[path[i]] as Record<string, unknown>) };
+          cur = cur[path[i]] as Record<string, unknown>;
+        }
+        cur[path[path.length - 1]] = value;
+        return copy as unknown as RestaurantData;
+      });
+    },
+    []
+  );
+
+  // Array helpers
+  const addItem = useCallback(
+    <K extends keyof RestaurantData>(key: K, item: RestaurantData[K] extends (infer T)[] ? T : never) => {
+      setForm((f) => ({ ...f, [key]: [...(f[key] as unknown[]), item] }));
+    },
+    []
+  );
+
+  const removeItem = useCallback(<K extends keyof RestaurantData>(key: K, idx: number) => {
+    setForm((f) => {
+      const arr = [...(f[key] as unknown[])];
+      arr.splice(idx, 1);
+      return { ...f, [key]: arr };
+    });
+  }, []);
+
+  const updateItem = useCallback(
+    <K extends keyof RestaurantData>(
+      key: K,
+      idx: number,
+      value: RestaurantData[K] extends (infer T)[] ? T : never
+    ) => {
+      setForm((f) => {
+        const arr = [...(f[key] as unknown[])];
+        arr[idx] = value;
+        return { ...f, [key]: arr };
+      });
+    },
+    []
+  );
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      // Clear auto-generated flags when the detailed CMS saves
+      const payload = { ...form, autoGeneratedFields: [] };
+      await saveRestaurantDataFn({ data: payload });
+      setForm(payload);
+      setSaveMsg({ ok: true, text: "Saved! Changes are live." });
+    } catch (err) {
+      setSaveMsg({ ok: false, text: "Save failed. Are you still logged in?" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await cmsLogoutFn();
+    navigate({ to: "/dashboard-x7k2" });
+    window.location.reload();
+  };
+
+  const inputCls = "bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 text-sm";
+  const textareaCls = inputCls + " resize-y";
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white">
+      {/* Top bar */}
+      <div className="sticky top-0 z-10 bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-xl">⚙️</span>
+          <div>
+            <h1 className="font-bold text-white leading-none">CMS</h1>
+            <p className="text-xs text-slate-400">{form.name}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {saveMsg && (
+            <span className={`text-sm ${saveMsg.ok ? "text-green-400" : "text-red-400"}`}>
+              {saveMsg.text}
+            </span>
+          )}
+          <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-500">
+            {saving ? "Saving…" : "Save changes"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-400 hover:text-white">
+            Logout
+          </Button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        <Tabs defaultValue="general">
+          <TabsList className="bg-slate-900 flex flex-wrap h-auto gap-1 mb-8">
+            {["general", "hero", "social-seo", "about", "menu", "signatures", "reviews", "gallery", "lock"].map((t) => (
+              <TabsTrigger key={t} value={t} className="text-slate-400 data-[state=active]:text-white data-[state=active]:bg-slate-700 capitalize text-sm">
+                {t.replace("-", " / ")}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {/* ── GENERAL ─────────────────────────────────────────── */}
+          <TabsContent value="general" className="space-y-6">
+            <SectionTitle>Identity</SectionTitle>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <FieldRow label="Restaurant name">
+                <Input value={form.name} onChange={(e) => set("name", e.target.value)} className={inputCls} />
+              </FieldRow>
+              <FieldRow label="Founded year">
+                <Input value={form.foundedYear} onChange={(e) => set("foundedYear", e.target.value)} className={inputCls} />
+              </FieldRow>
+            </div>
+            <FieldRow label="Tagline (short)" help="Shown in page title">
+              <Input value={form.tagline} onChange={(e) => set("tagline", e.target.value)} className={inputCls} />
+            </FieldRow>
+            <PhotoUpload label="Logo URL / upload" value={form.logoUrl} onChange={(url) => set("logoUrl", url)} />
+
+            <Separator className="border-slate-800" />
+            <SectionTitle>Contact</SectionTitle>
+            <FieldRow label="Full address (contact page)">
+              <Textarea value={form.address} onChange={(e) => set("address", e.target.value)} className={textareaCls} rows={2} />
+            </FieldRow>
+            <FieldRow label="Short address (footer)" help="Use newline for line break">
+              <Textarea value={form.addressShort} onChange={(e) => set("addressShort", e.target.value)} className={textareaCls} rows={2} />
+            </FieldRow>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <FieldRow label="Phone (display)">
+                <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} className={inputCls} placeholder="+91 99997 39766" />
+              </FieldRow>
+              <FieldRow label="WhatsApp number" help="Digits only, with country code">
+                <Input value={form.whatsappNumber} onChange={(e) => set("whatsappNumber", e.target.value)} className={inputCls} placeholder="919999739766" />
+              </FieldRow>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <FieldRow label="Hours (full)">
+                <Input value={form.hours} onChange={(e) => set("hours", e.target.value)} className={inputCls} />
+              </FieldRow>
+              <FieldRow label="Hours (short, footer)">
+                <Input value={form.hoursShort} onChange={(e) => set("hoursShort", e.target.value)} className={inputCls} />
+              </FieldRow>
+            </div>
+            <FieldRow label="Price range">
+              <Input value={form.priceRange} onChange={(e) => set("priceRange", e.target.value)} className={inputCls} />
+            </FieldRow>
+            <FieldRow label="Google Maps embed query" help="Used in iframe src: https://www.google.com/maps?q=THIS_VALUE&output=embed">
+              <Input value={form.mapsEmbedQuery} onChange={(e) => set("mapsEmbedQuery", e.target.value)} className={inputCls} />
+            </FieldRow>
+
+            <Separator className="border-slate-800" />
+            <SectionTitle>Footer</SectionTitle>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <FieldRow label="Footer tagline" help='e.g. "since 2014"'>
+                <Input value={form.footerTagline} onChange={(e) => set("footerTagline", e.target.value)} className={inputCls} />
+              </FieldRow>
+            </div>
+            <FieldRow label="Footer body text">
+              <Textarea value={form.footerBody} onChange={(e) => set("footerBody", e.target.value)} className={textareaCls} rows={2} />
+            </FieldRow>
+
+            <Separator className="border-slate-800" />
+            <SectionTitle>Marquee strip</SectionTitle>
+            <p className="text-sm text-slate-400">Items shown in the scrolling marquee band. Use "★" for decorative stars.</p>
+            {form.marqueeItems.map((item, idx) => (
+              <div key={idx} className="flex gap-2">
+                <Input
+                  value={item}
+                  onChange={(e) => {
+                    const arr = [...form.marqueeItems];
+                    arr[idx] = e.target.value;
+                    set("marqueeItems", arr);
+                  }}
+                  className={inputCls}
+                />
+                <RemoveBtn onClick={() => removeItem("marqueeItems", idx)} />
+              </div>
+            ))}
+            <AddBtn onClick={() => addItem("marqueeItems", "New item")} />
+          </TabsContent>
+
+          {/* ── HERO ────────────────────────────────────────────── */}
+          <TabsContent value="hero" className="space-y-6">
+            <SectionTitle autoGenerated={form.autoGeneratedFields?.includes('hero')}>Hero Section</SectionTitle>
+            <FieldRow label="Location badge" help='Small text next to pulsing dot. e.g. "Satya Niketan · open till 10:30 PM"'>
+              <Input value={form.heroLocationBadge} onChange={(e) => set("heroLocationBadge", e.target.value)} className={inputCls} />
+            </FieldRow>
+            <div className="space-y-2">
+              <Label className="text-slate-200">Headline (3 lines)</Label>
+              <p className="text-xs text-slate-500">Line 1 = plain, Line 2 = coral colour, Line 3 = marker-underline</p>
+              {([0, 1, 2] as const).map((i) => (
+                <Input
+                  key={i}
+                  value={form.heroHeadline[i]}
+                  onChange={(e) => {
+                    const h = [...form.heroHeadline] as [string, string, string];
+                    h[i] = e.target.value;
+                    set("heroHeadline", h);
+                  }}
+                  placeholder={`Line ${i + 1}`}
+                  className={inputCls}
+                />
+              ))}
+            </div>
+            <FieldRow label='"Since year" script annotation'>
+              <Input value={form.heroHeadlineSince} onChange={(e) => set("heroHeadlineSince", e.target.value)} className={inputCls} />
+            </FieldRow>
+            <FieldRow label="Hero subtext paragraph">
+              <Textarea value={form.heroSubcopy} onChange={(e) => set("heroSubcopy", e.target.value)} className={textareaCls} rows={3} />
+            </FieldRow>
+            <div className="space-y-2">
+              <Label className="text-slate-200">Hero stats (small pills below CTA)</Label>
+              {form.heroStats.map((s, idx) => (
+                <div key={idx} className="flex gap-2">
+                  <Input
+                    value={s}
+                    onChange={(e) => {
+                      const arr = [...form.heroStats];
+                      arr[idx] = e.target.value;
+                      set("heroStats", arr);
+                    }}
+                    className={inputCls}
+                  />
+                  <RemoveBtn onClick={() => removeItem("heroStats", idx)} />
+                </div>
+              ))}
+              <AddBtn onClick={() => addItem("heroStats", "New stat")} label="Add stat" />
+            </div>
+
+            <Separator className="border-slate-800" />
+            <SectionTitle>Collage Photos (3 images)</SectionTitle>
+            {([0, 1, 2] as const).map((i) => (
+              <div key={i} className="space-y-2 p-4 bg-slate-900 rounded-lg">
+                <p className="text-sm font-medium text-slate-300">Photo {i + 1}</p>
+                <PhotoUpload
+                  value={form.heroCollagePhotos[i]}
+                  onChange={(url) => {
+                    const photos = [...form.heroCollagePhotos] as [string, string, string];
+                    photos[i] = url;
+                    set("heroCollagePhotos", photos);
+                  }}
+                />
+                <FieldRow label="Alt text">
+                  <Input
+                    value={form.heroCollageAlts[i]}
+                    onChange={(e) => {
+                      const alts = [...form.heroCollageAlts] as [string, string, string];
+                      alts[i] = e.target.value;
+                      set("heroCollageAlts", alts);
+                    }}
+                    className={inputCls}
+                  />
+                </FieldRow>
+              </div>
+            ))}
+            <FieldRow label="Handwritten annotation on collage">
+              <Input value={form.heroCollageAnnotation} onChange={(e) => set("heroCollageAnnotation", e.target.value)} className={inputCls} />
+            </FieldRow>
+
+            <Separator className="border-slate-800" />
+            <SectionTitle>Story Teaser Section</SectionTitle>
+            <PhotoUpload label="Teaser photo" value={form.storyTeaserPhoto} onChange={(url) => set("storyTeaserPhoto", url)} />
+            <FieldRow label="Teaser photo alt text">
+              <Input value={form.storyTeaserPhotoAlt} onChange={(e) => set("storyTeaserPhotoAlt", e.target.value)} className={inputCls} />
+            </FieldRow>
+            <FieldRow label="Script label (top of teaser)">
+              <Input value={form.storyTeaserScriptLabel} onChange={(e) => set("storyTeaserScriptLabel", e.target.value)} className={inputCls} />
+            </FieldRow>
+            <div className="space-y-2">
+              <Label className="text-slate-200">Headline parts (H2)</Label>
+              <p className="text-xs text-slate-500">Part 1 = marker-underline. Part 2 = coral colour.</p>
+              {([0, 1] as const).map((i) => (
+                <Input
+                  key={i}
+                  value={form.storyTeaserH2[i]}
+                  onChange={(e) => {
+                    const h = [...form.storyTeaserH2] as [string, string];
+                    h[i] = e.target.value;
+                    set("storyTeaserH2", h);
+                  }}
+                  placeholder={i === 0 ? "fairy lights" : "first-year crushes"}
+                  className={inputCls}
+                />
+              ))}
+            </div>
+            <FieldRow label="Teaser body paragraph">
+              <Textarea value={form.storyTeaserBody} onChange={(e) => set("storyTeaserBody", e.target.value)} className={textareaCls} rows={4} />
+            </FieldRow>
+          </TabsContent>
+
+          {/* ── SOCIAL / SEO ─────────────────────────────────────── */}
+          <TabsContent value="social-seo" className="space-y-6">
+            <SectionTitle>Social Links</SectionTitle>
+            <FieldRow label="Instagram URL">
+              <Input value={form.socialLinks.instagram} onChange={(e) => setNested(["socialLinks", "instagram"], e.target.value)} className={inputCls} />
+            </FieldRow>
+            <FieldRow label="Google Maps URL">
+              <Input value={form.socialLinks.maps} onChange={(e) => setNested(["socialLinks", "maps"], e.target.value)} className={inputCls} />
+            </FieldRow>
+
+            <Separator className="border-slate-800" />
+            {(["home", "menu", "about", "contact", "gallery"] as const).map((page) => (
+              <div key={page} className="space-y-4">
+                <SectionTitle autoGenerated={form.autoGeneratedFields?.includes('seoMeta')}>SEO — {page.charAt(0).toUpperCase() + page.slice(1)} page</SectionTitle>
+                <FieldRow label="Page title">
+                  <Input
+                    value={form.seoMeta[page].title}
+                    onChange={(e) => setNested(["seoMeta", page, "title"], e.target.value)}
+                    className={inputCls}
+                  />
+                </FieldRow>
+                <FieldRow label="Meta description">
+                  <Textarea
+                    value={form.seoMeta[page].description}
+                    onChange={(e) => setNested(["seoMeta", page, "description"], e.target.value)}
+                    className={textareaCls}
+                    rows={2}
+                  />
+                </FieldRow>
+                <PhotoUpload
+                  label="OG image"
+                  value={form.seoMeta[page].ogImage ?? ""}
+                  onChange={(url) => setNested(["seoMeta", page, "ogImage"], url)}
+                />
+              </div>
+            ))}
+          </TabsContent>
+
+          {/* ── ABOUT ────────────────────────────────────────────── */}
+          <TabsContent value="about" className="space-y-6">
+            <SectionTitle autoGenerated={form.autoGeneratedFields?.includes('milestones')}>Milestones (timeline)</SectionTitle>
+            {form.milestones.map((m, idx) => (
+              <div key={idx} className="p-4 bg-slate-900 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-slate-400 border-slate-700">#{idx + 1}</Badge>
+                  <RemoveBtn onClick={() => removeItem("milestones", idx)} />
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <FieldRow label="Year">
+                    <Input value={m.year} onChange={(e) => updateItem("milestones", idx, { ...m, year: e.target.value })} className={inputCls} />
+                  </FieldRow>
+                  <FieldRow label="Title">
+                    <Input value={m.title} onChange={(e) => updateItem("milestones", idx, { ...m, title: e.target.value })} className={inputCls} />
+                  </FieldRow>
+                </div>
+                <FieldRow label="Body">
+                  <Textarea value={m.body} onChange={(e) => updateItem("milestones", idx, { ...m, body: e.target.value })} className={textareaCls} rows={2} />
+                </FieldRow>
+              </div>
+            ))}
+            <AddBtn
+              onClick={() => addItem("milestones", { year: "2025", title: "New milestone", body: "Describe it here." } as Milestone)}
+              label="Add milestone"
+            />
+
+            <Separator className="border-slate-800" />
+            <SectionTitle autoGenerated={form.autoGeneratedFields?.includes('stats')}>Stats (counter grid)</SectionTitle>
+            {form.stats.map((s, idx) => (
+              <div key={idx} className="flex gap-3 items-center">
+                <Input
+                  value={s.n}
+                  onChange={(e) => updateItem("stats", idx, { ...s, n: e.target.value })}
+                  placeholder="Number"
+                  className={inputCls + " w-28"}
+                />
+                <Input
+                  value={s.l}
+                  onChange={(e) => updateItem("stats", idx, { ...s, l: e.target.value })}
+                  placeholder="Label"
+                  className={inputCls}
+                />
+                <RemoveBtn onClick={() => removeItem("stats", idx)} />
+              </div>
+            ))}
+            <AddBtn onClick={() => addItem("stats", { n: "0", l: "New stat" } as Stat)} label="Add stat" />
+
+            <Separator className="border-slate-800" />
+            <SectionTitle>Press quote</SectionTitle>
+            <FieldRow label="Quote text">
+              <Input value={form.pressQuote} onChange={(e) => set("pressQuote", e.target.value)} className={inputCls} />
+            </FieldRow>
+            <FieldRow label="Attribution" help="HTML allowed e.g. As featured in <strong>Delhi Times</strong>">
+              <Input value={form.pressAttribution} onChange={(e) => set("pressAttribution", e.target.value)} className={inputCls} />
+            </FieldRow>
+          </TabsContent>
+
+          {/* ── MENU ─────────────────────────────────────────────── */}
+          <TabsContent value="menu" className="space-y-6">
+            <SectionTitle autoGenerated={form.autoGeneratedFields?.includes('menu')}>Menu categories</SectionTitle>
+            {form.menu.map((cat, cIdx) => (
+              <details key={cat.id} className="bg-slate-900 rounded-lg" open={cIdx === 0}>
+                <summary className="flex items-center justify-between p-4 cursor-pointer select-none">
+                  <span className="font-medium text-white">{cat.label} <span className="text-slate-400 text-sm">({cat.items.length} items)</span></span>
+                  <RemoveBtn onClick={() => removeItem("menu", cIdx)} />
+                </summary>
+                <div className="px-4 pb-4 space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <FieldRow label="Category ID" help="URL-safe slug, no spaces">
+                      <Input
+                        value={cat.id}
+                        onChange={(e) => {
+                          const arr = [...form.menu];
+                          arr[cIdx] = { ...cat, id: e.target.value };
+                          set("menu", arr);
+                        }}
+                        className={inputCls}
+                      />
+                    </FieldRow>
+                    <FieldRow label="Category label">
+                      <Input
+                        value={cat.label}
+                        onChange={(e) => {
+                          const arr = [...form.menu];
+                          arr[cIdx] = { ...cat, label: e.target.value };
+                          set("menu", arr);
+                        }}
+                        className={inputCls}
+                      />
+                    </FieldRow>
+                  </div>
+
+                  {cat.items.map((item, iIdx) => (
+                    <div key={iIdx} className="p-3 bg-slate-800 rounded-md space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">Item {iIdx + 1}</span>
+                        <RemoveBtn
+                          onClick={() => {
+                            const arr = [...form.menu];
+                            const items = [...cat.items];
+                            items.splice(iIdx, 1);
+                            arr[cIdx] = { ...cat, items };
+                            set("menu", arr);
+                          }}
+                        />
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        <Input
+                          value={item.name}
+                          onChange={(e) => {
+                            const arr = [...form.menu];
+                            const items = [...cat.items];
+                            items[iIdx] = { ...item, name: e.target.value };
+                            arr[cIdx] = { ...cat, items };
+                            set("menu", arr);
+                          }}
+                          placeholder="Item name"
+                          className={inputCls}
+                        />
+                        <Input
+                          value={item.price}
+                          onChange={(e) => {
+                            const arr = [...form.menu];
+                            const items = [...cat.items];
+                            items[iIdx] = { ...item, price: e.target.value };
+                            arr[cIdx] = { ...cat, items };
+                            set("menu", arr);
+                          }}
+                          placeholder="₹150"
+                          className={inputCls}
+                        />
+                      </div>
+                      <Input
+                        value={item.desc ?? ""}
+                        onChange={(e) => {
+                          const arr = [...form.menu];
+                          const items = [...cat.items];
+                          items[iIdx] = { ...item, desc: e.target.value };
+                          arr[cIdx] = { ...cat, items };
+                          set("menu", arr);
+                        }}
+                        placeholder="Description (optional)"
+                        className={inputCls}
+                      />
+                      <div className="flex gap-4 items-center flex-wrap">
+                        <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                          <Switch
+                            checked={item.veg !== false}
+                            onCheckedChange={(v) => {
+                              const arr = [...form.menu];
+                              const items = [...cat.items];
+                              items[iIdx] = { ...item, veg: v };
+                              arr[cIdx] = { ...cat, items };
+                              set("menu", arr);
+                            }}
+                          />
+                          Vegetarian
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                          <Switch
+                            checked={!!item.star}
+                            onCheckedChange={(v) => {
+                              const arr = [...form.menu];
+                              const items = [...cat.items];
+                              items[iIdx] = { ...item, star: v };
+                              arr[cIdx] = { ...cat, items };
+                              set("menu", arr);
+                            }}
+                          />
+                          Bestseller ⭐
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+
+                  <AddBtn
+                    onClick={() => {
+                      const arr = [...form.menu];
+                      arr[cIdx] = {
+                        ...cat,
+                        items: [...cat.items, { name: "New item", price: "₹100", veg: true } as MenuItem],
+                      };
+                      set("menu", arr);
+                    }}
+                    label="Add item"
+                  />
+                </div>
+              </details>
+            ))}
+            <AddBtn
+              onClick={() =>
+                addItem("menu", {
+                  id: `category-${Date.now()}`,
+                  label: "New Category",
+                  items: [],
+                } as MenuCategory)
+              }
+              label="Add category"
+            />
+          </TabsContent>
+
+          {/* ── SIGNATURE DISHES ─────────────────────────────────── */}
+          <TabsContent value="signatures" className="space-y-6">
+            <SectionTitle>Signature dishes (homepage showcase)</SectionTitle>
+            {form.signatureDishes.map((dish, idx) => (
+              <div key={idx} className="p-4 bg-slate-900 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-slate-400 border-slate-700">#{idx + 1}</Badge>
+                  <RemoveBtn onClick={() => removeItem("signatureDishes", idx)} />
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <FieldRow label="Name">
+                    <Input value={dish.name} onChange={(e) => updateItem("signatureDishes", idx, { ...dish, name: e.target.value })} className={inputCls} />
+                  </FieldRow>
+                  <FieldRow label="Tag">
+                    <Input value={dish.tag} onChange={(e) => updateItem("signatureDishes", idx, { ...dish, tag: e.target.value })} className={inputCls} />
+                  </FieldRow>
+                  <FieldRow label="Price">
+                    <Input value={dish.price} onChange={(e) => updateItem("signatureDishes", idx, { ...dish, price: e.target.value })} className={inputCls} />
+                  </FieldRow>
+                </div>
+                <PhotoUpload
+                  label="Dish photo"
+                  value={dish.img}
+                  onChange={(url) => updateItem("signatureDishes", idx, { ...dish, img: url })}
+                />
+                <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                  <Switch
+                    checked={dish.veg}
+                    onCheckedChange={(v) => updateItem("signatureDishes", idx, { ...dish, veg: v })}
+                  />
+                  Vegetarian
+                </label>
+              </div>
+            ))}
+            <AddBtn
+              onClick={() =>
+                addItem("signatureDishes", { name: "New Dish", tag: "Must Try", price: "₹150", img: "", veg: true } as SignatureDish)
+              }
+              label="Add dish"
+            />
+          </TabsContent>
+
+          {/* ── REVIEWS ──────────────────────────────────────────── */}
+          <TabsContent value="reviews" className="space-y-6">
+            <SectionTitle autoGenerated={form.autoGeneratedFields?.includes('reviews')}>Customer reviews (scrolling wishes wall)</SectionTitle>
+            {form.reviews.map((r, idx) => (
+              <div key={idx} className="p-4 bg-slate-900 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Review {idx + 1}</span>
+                  <RemoveBtn onClick={() => removeItem("reviews", idx)} />
+                </div>
+                <FieldRow label="Review text">
+                  <Textarea
+                    value={r.text}
+                    onChange={(e) => updateItem("reviews", idx, { ...r, text: e.target.value })}
+                    className={textareaCls}
+                    rows={3}
+                  />
+                </FieldRow>
+                <FieldRow label="Reviewer name">
+                  <Input value={r.who} onChange={(e) => updateItem("reviews", idx, { ...r, who: e.target.value })} className={inputCls} />
+                </FieldRow>
+              </div>
+            ))}
+            <AddBtn
+              onClick={() => addItem("reviews", { text: "Great place!", who: "Happy Customer" } as Review)}
+              label="Add review"
+            />
+          </TabsContent>
+
+          {/* ── GALLERY ──────────────────────────────────────────── */}
+          <TabsContent value="gallery" className="space-y-6">
+            <SectionTitle autoGenerated={form.autoGeneratedFields?.includes('galleryPhotos')}>Gallery photos</SectionTitle>
+            <p className="text-sm text-slate-400">These appear on the /gallery page. Category filters: ambience, food, drinks.</p>
+            {form.galleryPhotos.map((p, idx) => (
+              <div key={idx} className="p-4 bg-slate-900 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-slate-400 border-slate-700">{p.cat}</Badge>
+                  <RemoveBtn onClick={() => removeItem("galleryPhotos", idx)} />
+                </div>
+                <PhotoUpload
+                  value={p.src}
+                  onChange={(url) => updateItem("galleryPhotos", idx, { ...p, src: url })}
+                />
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <FieldRow label="Caption">
+                    <Input value={p.caption} onChange={(e) => updateItem("galleryPhotos", idx, { ...p, caption: e.target.value })} className={inputCls} />
+                  </FieldRow>
+                  <FieldRow label="Category">
+                    <select
+                      value={p.cat}
+                      onChange={(e) => updateItem("galleryPhotos", idx, { ...p, cat: e.target.value as GalleryPhoto["cat"] })}
+                      className={`${inputCls} w-full rounded-md border px-3 py-2`}
+                    >
+                      <option value="ambience">ambience</option>
+                      <option value="food">food</option>
+                      <option value="drinks">drinks</option>
+                    </select>
+                  </FieldRow>
+                </div>
+              </div>
+            ))}
+            <AddBtn
+              onClick={() =>
+                addItem("galleryPhotos", { src: "", cat: "ambience", caption: "New photo" } as GalleryPhoto)
+              }
+              label="Add photo"
+            />
+          </TabsContent>
+
+          {/* ── LOCK / SECURITY ──────────────────────────────────── */}
+          <TabsContent value="lock" className="space-y-6">
+            <SectionTitle>Security</SectionTitle>
+
+            <div className="p-6 bg-slate-900 rounded-lg space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-white">Lock this site</p>
+                  <p className="text-sm text-slate-400 mt-1">
+                    When ON, the /dashboard-x7k2 URL returns 404 to everyone — including you, even with the correct password.
+                    Use this when handing over a finalized site to a client.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.isLocked}
+                  onCheckedChange={(v) => set("isLocked", v)}
+                />
+              </div>
+              {form.isLocked && (
+                <div className="p-4 bg-red-950 border border-red-800 rounded-md text-red-300 text-sm space-y-2">
+                  <p className="font-semibold">⚠️ This will lock you out!</p>
+                  <p>After saving, this URL will return 404. To unlock later, SSH into the server and edit <code className="bg-red-900 px-1 rounded">data/restaurant.json</code> — set <code className="bg-red-900 px-1 rounded">"isLocked": false</code>. See <strong>CMS_README.md</strong> for the full procedure.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 bg-slate-900 rounded-lg">
+              <p className="font-semibold text-white">Password</p>
+              <p className="text-sm text-slate-400 mt-1">
+                The admin password is read from the <code className="bg-slate-800 px-1 rounded">CMS_ADMIN_PASSWORD</code> environment variable on the server.
+                To change it, update the env var and restart the server — all existing sessions are instantly invalidated.
+              </p>
+            </div>
+
+            <div className="p-6 bg-slate-900 rounded-lg">
+              <p className="font-semibold text-white mb-3">Session</p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleLogout}
+                className="border-slate-700 text-slate-300 hover:text-white"
+              >
+                Logout
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Floating save reminder */}
+        <div className="mt-8 flex justify-end">
+          <Button onClick={handleSave} disabled={saving} size="lg" className="bg-blue-600 hover:bg-blue-500">
+            {saving ? "Saving…" : "Save all changes"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

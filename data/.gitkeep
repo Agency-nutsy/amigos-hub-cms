@@ -1,0 +1,3 @@
+# This file ensures the data/ directory is tracked by git.
+# data/restaurant.json (the live CMS data) is git-ignored.
+# See CMS_README.md for details.

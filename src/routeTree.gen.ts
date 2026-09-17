@@ -11,9 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as DashboardX7k2RouteImport } from './routes/dashboard-x7k2'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardX7k2QuickRouteImport } from './routes/dashboard-x7k2_.quick'
 
 const MenuRoute = MenuRouteImport.update({
   id: '/menu',
@@ -23,6 +25,11 @@ const MenuRoute = MenuRouteImport.update({
 const GalleryRoute = GalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardX7k2Route = DashboardX7k2RouteImport.update({
+  id: '/dashboard-x7k2',
+  path: '/dashboard-x7k2',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -40,43 +47,78 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardX7k2QuickRoute = DashboardX7k2QuickRouteImport.update({
+  id: '/dashboard-x7k2_/quick',
+  path: '/dashboard-x7k2/quick',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
+  '/dashboard-x7k2': typeof DashboardX7k2Route
   '/gallery': typeof GalleryRoute
   '/menu': typeof MenuRoute
+  '/dashboard-x7k2/quick': typeof DashboardX7k2QuickRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
+  '/dashboard-x7k2': typeof DashboardX7k2Route
   '/gallery': typeof GalleryRoute
   '/menu': typeof MenuRoute
+  '/dashboard-x7k2/quick': typeof DashboardX7k2QuickRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
+  '/dashboard-x7k2': typeof DashboardX7k2Route
   '/gallery': typeof GalleryRoute
   '/menu': typeof MenuRoute
+  '/dashboard-x7k2_/quick': typeof DashboardX7k2QuickRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/contact' | '/gallery' | '/menu'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/contact'
+    | '/dashboard-x7k2'
+    | '/gallery'
+    | '/menu'
+    | '/dashboard-x7k2/quick'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/contact' | '/gallery' | '/menu'
-  id: '__root__' | '/' | '/about' | '/contact' | '/gallery' | '/menu'
+  to:
+    | '/'
+    | '/about'
+    | '/contact'
+    | '/dashboard-x7k2'
+    | '/gallery'
+    | '/menu'
+    | '/dashboard-x7k2/quick'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/contact'
+    | '/dashboard-x7k2'
+    | '/gallery'
+    | '/menu'
+    | '/dashboard-x7k2_/quick'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   ContactRoute: typeof ContactRoute
+  DashboardX7k2Route: typeof DashboardX7k2Route
   GalleryRoute: typeof GalleryRoute
   MenuRoute: typeof MenuRoute
+  DashboardX7k2QuickRoute: typeof DashboardX7k2QuickRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -93,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/gallery'
       fullPath: '/gallery'
       preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard-x7k2': {
+      id: '/dashboard-x7k2'
+      path: '/dashboard-x7k2'
+      fullPath: '/dashboard-x7k2'
+      preLoaderRoute: typeof DashboardX7k2RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -116,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard-x7k2_/quick': {
+      id: '/dashboard-x7k2_/quick'
+      path: '/dashboard-x7k2/quick'
+      fullPath: '/dashboard-x7k2/quick'
+      preLoaderRoute: typeof DashboardX7k2QuickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -123,8 +179,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   ContactRoute: ContactRoute,
+  DashboardX7k2Route: DashboardX7k2Route,
   GalleryRoute: GalleryRoute,
   MenuRoute: MenuRoute,
+  DashboardX7k2QuickRoute: DashboardX7k2QuickRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

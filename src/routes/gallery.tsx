@@ -1,37 +1,41 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { photos } from "@/lib/photos";
+import { getRestaurantDataFn } from "@/lib/cms-actions";
+import type { RestaurantData, GalleryPhoto } from "@/lib/restaurant-data";
+
+type Cat = "all" | "ambience" | "food" | "drinks";
 
 export const Route = createFileRoute("/gallery")({
-  head: () => ({
-    meta: [
-      { title: "Gallery · Amigos Hub Cafe Satya Niketan" },
-      { name: "description", content: "Real photos of Amigos Hub — the graffiti walls, fairy lights, sticky-note wishes wall, our food, our drinks, and the crowd that makes it all happen." },
-      { property: "og:title", content: "Gallery · Amigos Hub" },
-      { property: "og:image", content: photos.stickyWall },
-    ],
-  }),
+  loader: async (): Promise<RestaurantData> => {
+    return await getRestaurantDataFn();
+  },
   component: GalleryPage,
 });
 
-type Cat = "all" | "ambience" | "food" | "drinks";
-const items: { src: string; cat: Exclude<Cat, "all">; caption: string }[] = [
-  { src: photos.ambience1, cat: "ambience", caption: "Friday night, full house" },
-  { src: photos.crowd, cat: "ambience", caption: "The long table" },
-  { src: photos.yellowStripe, cat: "ambience", caption: "Our yellow striped corner" },
-  { src: photos.stickyWall, cat: "ambience", caption: "The wishes wall" },
-  { src: photos.artWall, cat: "ambience", caption: "Hanging plant + framed art" },
-  { src: photos.balloons, cat: "ambience", caption: "Birthday balloon setup" },
-  { src: photos.ambience2, cat: "ambience", caption: "Edison bulbs at dinner" },
-  { src: photos.interior1, cat: "ambience", caption: "Quiet afternoon shift" },
-  { src: photos.mojito, cat: "drinks", caption: "Watermelon mojito" },
-  { src: photos.drinkPink, cat: "drinks", caption: "Cranberry cooler" },
-];
-
 function GalleryPage() {
+  const data = Route.useLoaderData() as RestaurantData;
+  const items: GalleryPhoto[] = data.galleryPhotos || [];
+
   const [cat, setCat] = useState<Cat>("all");
   const [zoom, setZoom] = useState<string | null>(null);
-  const visible = cat === "all" ? items : items.filter((i) => i.cat === cat);
+
+  // 10 Homepage photos mapped for the "Everything" tab
+  const homepageItems: GalleryPhoto[] = (data.homepageGalleryPhotos || [])
+    .filter((src): src is string => Boolean(src && src.trim().length > 0))
+    .map((src, i) => ({
+      src,
+      cat: "ambience" as const,
+      caption: `Cafe moments #${i + 1}`,
+    }));
+
+  // "Everything" includes homepage photos without needing to reupload; other categories remain untouched
+  const visible =
+    cat === "all"
+      ? [
+          ...homepageItems,
+          ...items.filter((item) => !homepageItems.some((h) => h.src === item.src)),
+        ]
+      : items.filter((i) => i.cat === cat);
 
   return (
     <div className="mx-auto max-w-7xl px-5 sm:px-8 py-12">

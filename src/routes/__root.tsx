@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,6 +16,12 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteNav } from "../components/SiteNav";
 import { SiteFooter } from "../components/SiteFooter";
 import { FloatingWidgets } from "../components/FloatingWidgets";
+import { getRestaurantDataFn } from "../lib/cms-actions";
+import type { RestaurantData } from "../lib/restaurant-data";
+import { defaultRestaurantData } from "../lib/restaurant-data";
+
+// ─── CMS dashboard path — keep in sync with the route filename ────────────────
+const CMS_PATH = "/dashboard-x7k2";
 
 function NotFoundComponent() {
   return (
@@ -77,31 +84,44 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Amigos Hub — Satya Niketan's loudest, friendliest cafe since 2014" },
-      { name: "description", content: "Burgers, shakes, mojitos and momos in the heart of DU South Campus. Graffiti walls, fairy lights, and pocket-friendly comfort food since 2014." },
-      { name: "author", content: "Amigos Hub" },
-      { property: "og:title", content: "Amigos Hub Cafe · Satya Niketan" },
-      { property: "og:description", content: "DU South Campus's beloved hangout — burgers, shakes, momos & mojitos since 2014." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Bowlby+One&family=Caveat:wght@500;700&family=DM+Sans:wght@400;500;700&display=swap",
-      },
-    ],
-  }),
+  loader: async (): Promise<RestaurantData> => {
+    try {
+      return await getRestaurantDataFn();
+    } catch {
+      // Fallback to seed data if server fn fails (e.g. during SSR cold start)
+      return { ...defaultRestaurantData };
+    }
+  },
+  head: ({ match }) => {
+    const data = match.loaderData as RestaurantData | undefined;
+    const meta = data?.seoMeta?.home ?? defaultRestaurantData.seoMeta.home;
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { title: meta.title },
+        { name: "description", content: meta.description },
+        { name: "author", content: data?.name ?? defaultRestaurantData.name },
+        { property: "og:title", content: meta.title },
+        { property: "og:description", content: meta.description },
+        { property: "og:type", content: "website" },
+        ...(meta.ogImage ? [{ property: "og:image", content: meta.ogImage }] : []),
+        { name: "twitter:card", content: "summary" },
+      ],
+      links: [
+        {
+          rel: "stylesheet",
+          href: appCss,
+        },
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+        {
+          rel: "stylesheet",
+          href: "https://fonts.googleapis.com/css2?family=Bowlby+One&family=Caveat:wght@500;700&family=DM+Sans:wght@400;500;700&display=swap",
+        },
+      ],
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -122,7 +142,15 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function GlobalLoadingScreen() {
+function GlobalLoadingScreen({
+  name,
+  logoUrl,
+  loadingSubtext,
+}: {
+  name: string;
+  logoUrl: string;
+  loadingSubtext?: string;
+}) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -142,42 +170,42 @@ function GlobalLoadingScreen() {
           className="fixed inset-0 z-[100] bg-cream flex flex-col items-center justify-center overflow-hidden grain"
         >
           <div className="relative z-10 flex flex-col items-center text-center px-4">
-            <motion.div 
-              animate={{ y: [0, -20, 0] }} 
+            <motion.div
+              animate={{ y: [0, -20, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
               className="mb-6 drop-shadow-xl"
             >
-              <img src="/logo.avif" alt="Amigos Hub Logo" className="h-32 sm:h-40 w-auto object-contain" />
+              <img src={logoUrl} alt={name} className="h-32 sm:h-40 w-auto object-contain" />
             </motion.div>
-            
-            <motion.h1 
+
+            <motion.h1
               initial={{ opacity: 0, scale: 0.8, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
               className="font-display text-5xl md:text-7xl text-charcoal tracking-tight uppercase"
             >
-              Amigos Hub
+              {name}
             </motion.h1>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.5 }}
               className="mt-6 font-script text-3xl text-coral flex items-center gap-2"
             >
               <span className="w-8 h-[3px] bg-coral/50 rounded-full animate-pulse"></span>
-              warming up the grill...
+              {loadingSubtext || "warming up the grill..."}
               <span className="w-8 h-[3px] bg-coral/50 rounded-full animate-pulse"></span>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ width: 0 }}
               animate={{ width: "240px" }}
               transition={{ duration: 2.2, ease: "easeInOut" }}
               className="mt-10 h-3 rounded-full stripe-pillar shadow-inner"
             />
           </div>
-          
+
           {/* Paper grain overlay handled by .grain class */}
         </motion.div>
       )}
@@ -195,21 +223,21 @@ function CircleTransition() {
       if (phase !== 'idle') return;
 
       setPhase('closing');
-      
+
       setTimeout(() => {
         window.scrollTo(0, 0);
         if (router.state.location.pathname !== path) {
            router.navigate({ to: path });
         }
-        
+
         setPhase('opening');
-        
+
         setTimeout(() => {
           setPhase('idle');
         }, 700);
       }, 600);
     };
-    
+
     window.addEventListener('nav-click', handleNav as EventListener);
     return () => window.removeEventListener('nav-click', handleNav as EventListener);
   }, [router, phase]);
@@ -223,7 +251,7 @@ function CircleTransition() {
           <mask id="holeMask">
             <rect width="100%" height="100%" fill="white" />
             {phase === 'opening' && (
-              <motion.circle 
+              <motion.circle
                 cx="50%" cy="50%" fill="black"
                 initial={{ r: 0 }}
                 animate={{ r: "150vmax" }}
@@ -232,9 +260,9 @@ function CircleTransition() {
             )}
           </mask>
         </defs>
-        
+
         {phase === 'closing' ? (
-          <motion.circle 
+          <motion.circle
             cx="50%" cy="50%" fill="#FF6B6B"
             initial={{ r: 0 }}
             animate={{ r: "150vmax" }}
@@ -250,21 +278,50 @@ function CircleTransition() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const data = Route.useLoaderData() as RestaurantData;
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isCmsRoute = pathname.startsWith(CMS_PATH);
+
+  // CMS route gets a clean shell — no cafe nav/footer/loading screen
+  if (isCmsRoute) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Outlet />
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GlobalLoadingScreen />
+      <GlobalLoadingScreen
+        name={data.name}
+        logoUrl={data.logoUrl}
+        loadingSubtext={data.loadingSubtext}
+      />
       <CircleTransition />
-      <div className="flex min-h-screen flex-col bg-charcoal">
-        <SiteNav />
-        <div className="flex-1 flex flex-col bg-cream">
-          <main className="flex-1">
-            <Outlet />
-          </main>
-          <SiteFooter />
-        </div>
+      <div className="flex min-h-screen flex-col bg-cream text-charcoal">
+        <SiteNav name={data.name} logoUrl={data.logoUrl} />
+        <main className="flex-1 pt-20 sm:pt-24">
+          <Outlet />
+        </main>
+        <SiteFooter
+          name={data.name}
+          logoUrl={data.logoUrl}
+          footerTagline={data.footerTagline}
+          footerBody={data.footerBody}
+          addressShort={data.addressShort}
+          address={data.address}
+          hoursShort={data.hoursShort}
+          hours={data.hours}
+          phone={data.phone}
+          whatsappNumber={data.whatsappNumber}
+          socialLinks={data.socialLinks}
+        />
       </div>
-      <FloatingWidgets />
+      <FloatingWidgets
+        mapsLink={data.socialLinks.maps}
+        whatsappNumber={data.whatsappNumber}
+      />
     </QueryClientProvider>
   );
 }
